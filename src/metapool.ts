@@ -1,6 +1,4 @@
 /// Implements a proxy class to call Meta Pool contract https://github.com/Narwallets/meta-pool/blob/master/metapool/src/lib.rs
-
-import BN from "bn.js"
 import * as nearAPI from "near-api-js"
 
 export class Metapool {
@@ -16,15 +14,15 @@ export class Metapool {
    * @param {string} methodName - contract method to invoke
    * @param {Object} args - JSON args for the function call
    * @param {number} tgas - The amount of Tera-gas for the call 5-300
-   * @param {BN} attachedYoctos - The amount of yoctonear to attach to the call
+   * @param {bigint} attachedYoctos - The amount of yoctonear to attach to the call
   */
-  async call(methodName:string, args:Record<string,any>, tgas?:number, attachedYoctos?:BN): Promise<any> {
+  async call(methodName:string, args:Record<string,any>, tgas?:number, attachedYoctos?: bigint): Promise<any> {
     return this.account.functionCall ({
       contractId: this.contractId,
       methodName,
       args,
-      gas: new BN((tgas||200).toFixed()+"0".repeat(12)),
-      attachedDeposit: attachedYoctos||new BN(0),
+      gas: BigInt((tgas||200).toFixed()+"0".repeat(12)),
+      attachedDeposit: attachedYoctos||BigInt(0),
     })
   }
 
@@ -33,13 +31,15 @@ export class Metapool {
    *
    * @param {Object} args - JSON args for the function call
    * @param {number} tgas - The amount of Tera-gas for the call 5-300
-   * @param {BN} attachedYoctos - The amount of yoctonear to attach to the call
+   * @param {bigint} attachedYoctos - The amount of yoctonear to attach to the call
   */
   async view(methodName:string, args?:Record<string,any>): Promise<any>{
     return this.account.viewFunction(
-      this.contractId,
-      methodName,
-      args,
+      {
+        contractId: this.contractId,
+        methodName,
+        args,
+      }
     )
   }
 
@@ -57,10 +57,10 @@ export class Metapool {
    * calls deposit and stake in the Meta Pool contract
    * Stake NEAR in Meta Pool, you get stNEAR in your wallet
    *
-   * @param {BN} attachedYoctos - The amount of yoctonear to stake
+   * @param {bigint} attachedYoctos - The amount of yoctonear to stake
    * @result - stNEAR in the user wallet
   */
-  async stake(attachedYoctos: BN): Promise<any> { 
+  async stake(attachedYoctos: bigint): Promise<any> { 
     return this.call("deposit_and_stake", {}, 50, attachedYoctos)
   }
 
@@ -68,10 +68,10 @@ export class Metapool {
    * calls liquid stake in the Meta Pool contract
    * Liquid unstake stNEAR from Meta Pool, you get NEAR in your wallet immediately
    *
-   * @param {BN} yoctoStNEAR - The amount of yoctstNEAR to stake
-   * @param {BN} minExpectedYoctos - The minimun amount of yoctos expected (allows the user to put a limit on fees paid)
+   * @param {bigint} yoctoStNEAR - The amount of yoctstNEAR to stake
+   * @param {bigint} minExpectedYoctos - The minimun amount of yoctos expected (allows the user to put a limit on fees paid)
   */
-  async liquidUnstake(yoctoStNEAR: BN, minExpectedYoctos:BN): Promise<any> {
+  async liquidUnstake(yoctoStNEAR: bigint, minExpectedYoctos:bigint): Promise<any> {
     return this.call(
       "liquid_unstake",
       { st_near_to_burn: yoctoStNEAR.toString(), 
@@ -81,7 +81,7 @@ export class Metapool {
   }
 
   /// simulates a liquid unstake and return potential NEARs to receive
-  get_near_amount_sell_stnear(yoctoStNEARToSell: BN): Promise<U128String> {
+  get_near_amount_sell_stnear(yoctoStNEARToSell: bigint): Promise<U128String> {
     return this.view("get_near_amount_sell_stnear", { "stnear_to_sell": yoctoStNEARToSell.toString() })
   }
 
@@ -111,7 +111,7 @@ export class Metapool {
     return this.view("get_account_info", { account_id: accountId })
   }
 
-  withdraw(nearsToWithdraw: BN): Promise<void> {
+  withdraw(nearsToWithdraw: bigint): Promise<void> {
     return this.call("withdraw", { amount: nearsToWithdraw.toString()})
   }
 
@@ -119,9 +119,9 @@ export class Metapool {
    * calls delayed unstake in the Meta Pool contract
    * Delayed unstake stNEAR from Meta Pool, you will able to withdraw NEAR in four epochs
    *
-   * @param {BN} yoctoStNEAR - The amount of yoctstNEAR to unstake
+   * @param {bigint} yoctoStNEAR - The amount of yoctstNEAR to unstake
    */
-  unstake(yoctoStNEAR: BN): Promise<any> {
+  unstake(yoctoStNEAR: bigint): Promise<any> {
     return this.call("unstake", { "amount": yoctoStNEAR.toString() })
   }
 
@@ -130,12 +130,12 @@ export class Metapool {
   }
 
   /// current fee for liquidity providers
-  nslp_get_discount_basis_points(yoctoStNEARToSell: BN): Promise<number> {
+  nslp_get_discount_basis_points(yoctoStNEARToSell: bigint): Promise<number> {
     return this.view("nslp_get_discount_basis_points", { "stnear_to_sell": yoctoStNEARToSell.toString() })
   }
 
   /// add liquidity
-  nslp_add_liquidity(yoctos: BN): Promise<number> {
+  nslp_add_liquidity(yoctos: bigint): Promise<number> {
     return this.call("nslp_add_liquidity", {}, 75, yoctos)
   }
 
